@@ -1,1 +1,0 @@
-# bilet_kinematika
