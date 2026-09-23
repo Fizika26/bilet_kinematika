@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Билеты · Кинематика</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bench:#14181E;
+    --paper:#FBFBF8;
+    --text:#1B2027;
+    --muted:#6A7382;
+    --line:#2F6BFF;    /* прямолинейное движение */
+    --fall:#FFB020;    /* свободное падение */
+    --rel:#35CE8D;     /* относительность движения */
+    --circ:#A97BFF;    /* движение по окружности */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bench);
+    background-image:
+      radial-gradient(120% 70% at 50% 0%,rgba(255,255,255,.055) 0%,transparent 60%),
+      repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 8px),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 8px),
+      repeating-linear-gradient(0deg,rgba(255,255,255,.075) 0 1px,transparent 1px 40px),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.075) 0 1px,transparent 1px 40px);
+    color:#E8EAEE;
+    font-family:"Golos Text",-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--fall);margin:0 0 14px}
+  h1{font-family:"Unbounded",sans-serif;font-weight:700;font-size:clamp(28px,6.2vw,52px);line-height:1.03;margin:0;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:var(--line)}
+  .lead{color:#9AA3B0;max-width:46ch;margin:16px 0 0;font-size:15.5px;line-height:1.55}
+
+  .strobe{margin:26px 0 0;border-top:1px solid rgba(255,255,255,.09);border-bottom:1px solid rgba(255,255,255,.09)}
+  canvas{display:block;width:100%;height:96px}
+
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:24px 0 18px}
+  button{font:inherit;cursor:pointer}
+  .btn{border:1px solid rgba(255,255,255,.16);background:transparent;color:#E8EAEE;padding:11px 18px;border-radius:2px;font-size:14px;font-weight:500;transition:.15s}
+  .btn:hover{background:rgba(255,255,255,.07)}
+  .btn-main{background:var(--fall);border-color:var(--fall);color:#191100;font-weight:600}
+  .btn-main:hover{background:#FFC352;border-color:#FFC352}
+  .counter{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);letter-spacing:.08em;margin-left:auto}
+  :focus-visible{outline:2px solid var(--line);outline-offset:4px}
+
+  /* ---------- стол с билетами ---------- */
+  .table{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:26px 22px;padding:6px 4px 0}
+  .slot{perspective:1200px}
+  .card{position:relative;width:100%;min-height:250px;background:none;border:none;padding:0;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.7,.25,1);text-align:left;display:block}
+  .slot:nth-child(7n+1) .card{transform:rotate(-2.4deg)}
+  .slot:nth-child(7n+2) .card{transform:rotate(1.6deg)}
+  .slot:nth-child(7n+3) .card{transform:rotate(-1deg)}
+  .slot:nth-child(7n+4) .card{transform:rotate(2.8deg)}
+  .slot:nth-child(7n+5) .card{transform:rotate(-3.2deg)}
+  .slot:nth-child(7n+6) .card{transform:rotate(.8deg)}
+  .slot:nth-child(7n+7) .card{transform:rotate(-1.8deg)}
+  .card:hover{transform:rotate(0deg) translateY(-6px)}
+  .slot.open .card,.slot.open .card:hover{transform:rotate(0deg) rotateY(180deg)}
+
+  .face{position:absolute;inset:0;border-radius:3px;-webkit-backface-visibility:hidden;backface-visibility:hidden;box-shadow:0 2px 2px rgba(0,0,0,.25),0 18px 34px rgba(0,0,0,.45)}
+  .back{background:#1C2430;border:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;justify-content:space-between;padding:20px}
+  .back .btop{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .back .word{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#5B6678}
+  .back .bnum{font-family:"Unbounded",sans-serif;font-weight:700;font-size:38px;line-height:.9;letter-spacing:-.03em;color:#C3CCD9}
+  .back svg{width:100%;height:16px}
+  .back .hint{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;color:#5B6678}
+
+  .front{transform:rotateY(180deg);background:var(--paper);color:var(--text);padding:18px 20px;display:flex;flex-direction:column;gap:11px;overflow-y:auto}
+  .fhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .tnum{font-family:"Unbounded",sans-serif;font-weight:700;font-size:22px;letter-spacing:-.02em}
+  .tnum span{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:400;letter-spacing:.14em;color:var(--muted);margin-right:7px}
+  .qtext{font-size:16px;line-height:1.38;font-weight:600}
+  .ans{display:none;background:#F2F4F8;border-left:2px solid #C9D2E4;padding:11px 13px}
+  .ans.on{display:block}
+  .fx{font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:700;color:#152047;line-height:2}
+  .gr{font-family:"Cambria Math","STIX Two Math",Georgia,"Times New Roman",serif;font-style:italic;font-size:1.12em;letter-spacing:.01em}
+  .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;margin:0 .22em;line-height:1.2}
+  .frac>i{font-style:normal;padding:0 .35em}
+  .frac>i:last-child{border-top:1.6px solid currentColor;margin-top:.1em;padding-top:.12em}
+  .note{font-size:12.5px;color:#5B6472;margin-top:7px;line-height:1.45}
+  .fbtns{display:flex;gap:14px;align-items:center;border-top:1px solid #EBEAE3;padding-top:10px;margin-top:auto}
+  .lnk{border:none;background:none;padding:0;color:var(--muted);font-size:12.5px;letter-spacing:.04em;text-decoration:underline;text-underline-offset:3px}
+  .lnk:hover{color:var(--line)}
+  .lnk.key{color:#152047;font-weight:600;text-decoration-color:var(--line)}
+  @media (prefers-reduced-motion: reduce){.card{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Физика · кинематика · <span id="total">26</span> билетов</p>
+  <h1>Билеты по <em>кинематике</em></h1>
+  <p class="lead">Билеты лежат на столе рубашкой вверх, в каждом — один вопрос. Тяните любой, отвечайте вслух, потом проверяйте себя.</p>
+
+  <div class="strobe"><canvas id="strobe" aria-hidden="true"></canvas></div>
+
+  <div class="bar">
+    <button class="btn btn-main" id="pick">Вытянуть билет</button>
+    <button class="btn" id="shuffle">Собрать и перемешать</button>
+    <span class="counter" id="counter">ВЗЯТО 0</span>
+  </div>
+
+  <div class="table" id="table"></div>
+</div>
+
+<script>
+const Q = [
+  /* ---- прямолинейное движение ---- */
+  {t:"line", q:"Формула ускорения", fx:"a = <span class='frac'><i>v − v₀</i><i>t</i></span>",
+   note:"Изменение скорости, делённое на время. Единица — м/с²."},
+  {t:"line", q:"Средняя скорость", fx:"v<sub>ср</sub> = <span class='frac'><i>s</i><i>t</i></span>",
+   note:"Весь путь делим на всё время движения, включая остановки."},
+  {t:"line", q:"Путь: основная формула с ускорением и временем", fx:"s = v₀·t + <span class='frac'><i>a·t²</i><i>2</i></span>",
+   note:"Рабочая формула равноускоренного движения. При v₀ = 0 остаётся s = <span class='frac'><i>a·t²</i><i>2</i></span>."},
+  {t:"line", q:"Путь: формула только с ускорением, без времени", fx:"s = <span class='frac'><i>v² − v₀²</i><i>2a</i></span>",
+   note:"Отсюда же скорость: v² = v₀² + 2as."},
+  {t:"line", q:"Путь: формула с временем, без ускорения", fx:"s = <span class='frac'><i>v₀ + v</i><i>2</i></span>· t",
+   note:"Полусумма начальной и конечной скорости, умноженная на время."},
+  {t:"line", q:"Формула скорости при равноускоренном движении", fx:"v = v₀ + a·t",
+   note:"При торможении ускорение отрицательное: v = v₀ − a·t."},
+  {t:"line", q:"Перевести 72 км/ч в м/с", fx:"<span class='frac'><i>72 · 1000</i><i>3600</i></span>= 20 м/с",
+   note:"Короткий приём: делим на 3,6. Обратно — умножаем на 3,6."},
+  {t:"line", q:"Равномерное движение: путь и уравнение координаты", fx:"s = v·t<br>x = x₀ + v·t",
+   note:"Скорость постоянна, ускорение равно нулю."},
+  {t:"line", q:"Уравнение координаты при равноускоренном движении", fx:"x = x₀ + v₀·t + <span class='frac'><i>a·t²</i><i>2</i></span>",
+   note:"Проекции v₀ и a берут со знаком: против оси — минус."},
+  {t:"line", q:"График скорости v(t): что даёт площадь и что — наклон", fx:"площадь под графиком = путь<br>наклон графика = ускорение",
+   note:"Горизонтальная линия — равномерное движение, наклонная — равноускоренное."},
+  /* ---- движение по окружности ---- */
+  {t:"circ", q:"Период обращения", fx:"T = <span class='frac'><i>t</i><i>N</i></span>= <span class='frac'><i>2πR</i><i>v</i></span>",
+   note:"Время одного полного оборота, измеряется в секундах. N — число оборотов за время t."},
+  {t:"circ", q:"Частота обращения", fx:"<span class='gr'>ν</span> = <span class='frac'><i>N</i><i>t</i></span>= <span class='frac'><i>v</i><i>2πR</i></span>",
+   note:"Обозначается греческой буквой <span class='gr'>ν</span> («ню»), не путать со скоростью v. Число оборотов за единицу времени, в герцах (Гц)."},
+  {t:"circ", q:"Связь периода и частоты", fx:"T = <span class='frac'><i>1</i><i><span class='gr'>ν</span></i></span>&nbsp;&nbsp;&nbsp;<span class='gr'>ν</span> = <span class='frac'><i>1</i><i>T</i></span>",
+   note:"Период и частота — взаимно обратные величины."},
+  {t:"circ", q:"Угловая скорость", fx:"ω = <span class='frac'><i>2π</i><i>T</i></span>= 2π<span class='gr'>ν</span> = <span class='frac'><i>v</i><i>R</i></span>",
+   note:"Угол поворота за единицу времени, измеряется в рад/с."},
+  {t:"circ", q:"Линейная скорость при движении по окружности", fx:"v = ω·R = <span class='frac'><i>2πR</i><i>T</i></span>",
+   note:"Направлена по касательной к окружности и постоянна по модулю."},
+  {t:"circ", q:"Центростремительное ускорение", fx:"a = <span class='frac'><i>v²</i><i>R</i></span>= ω²·R = <span class='frac'><i>4π²R</i><i>T²</i></span>",
+   note:"Направлено к центру окружности; меняет направление скорости, но не её модуль."},
+  {t:"circ", q:"Длина окружности", fx:"l = 2πR",
+   note:"Путь за один полный оборот."}
+];
+
+let order = [...Q.keys()];
+const table = document.getElementById('table');
+const counter = document.getElementById('counter');
+document.getElementById('total').textContent = Q.length;
+
+function backMarks(){
+  let d='';
+  for(let k=0;k<=9;k++){
+    const x=(k*k/81)*100;
+    d+=`<rect x="${x.toFixed(2)}%" y="${k===9?0:3}" width="1.5" height="${k===9?16:10}" fill="${k===9?'#2F6BFF':'#FFB020'}" opacity="${.25+k*.07}"/>`;
+  }
+  return `<svg viewBox="0 0 100 16" preserveAspectRatio="none">${d}</svg>`;
+}
+
+function build(){
+  table.innerHTML = order.map((id,i)=>`
+    <div class="slot">
+      <button class="card" aria-label="Билет ${i+1}, перевернуть">
+        <div class="face back">
+          <div class="btop"><span class="word">Билет</span><span class="bnum">${String(i+1).padStart(2,'0')}</span></div>
+          ${backMarks()}
+          <div class="hint">ПЕРЕВЕРНУТЬ</div>
+        </div>
+        <div class="face front">
+          <div class="fhead">
+            <div class="tnum"><span>БИЛЕТ</span>${String(i+1).padStart(2,'0')}</div>
+          </div>
+          <div class="qtext">${Q[id].q}</div>
+          <div class="ans">
+            <div class="fx">${Q[id].fx}</div><div class="note">${Q[id].note}</div>
+          </div>
+          <div class="fbtns">
+            <button class="lnk key" data-act="ans">Показать ответ</button>
+            <button class="lnk" data-act="back">Положить обратно</button>
+          </div>
+        </div>
+      </button>
+    </div>`).join('');
+  count();
+}
+
+function count(){
+  counter.textContent = `ВЗЯТО ${table.querySelectorAll('.slot.open').length} ИЗ ${table.querySelectorAll('.slot').length}`;
+}
+
+table.addEventListener('click', e=>{
+  const slot = e.target.closest('.slot'); if(!slot) return;
+  const act = e.target.closest('[data-act]');
+  if(act){
+    e.stopPropagation();
+    if(act.dataset.act==='ans'){
+      const a = slot.querySelector('.ans');
+      a.classList.toggle('on');
+      act.textContent = a.classList.contains('on') ? 'Скрыть ответ' : 'Показать ответ';
+    }else{
+      slot.classList.remove('open');
+      slot.querySelector('.ans').classList.remove('on');
+      slot.querySelector('[data-act="ans"]').textContent='Показать ответ';
+      count();
+    }
+    return;
+  }
+  if(!slot.classList.contains('open')){ slot.classList.add('open'); count(); }
+});
+
+document.getElementById('pick').onclick = ()=>{
+  const closed = [...table.querySelectorAll('.slot:not(.open)')];
+  if(!closed.length) return;
+  const s = closed[Math.floor(Math.random()*closed.length)];
+  s.classList.add('open'); count();
+  s.scrollIntoView({behavior:'smooth',block:'center'});
+};
+
+document.getElementById('shuffle').onclick = ()=>{
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  build();
+};
+
+/* ---------- стробоскоп разгона в шапке ---------- */
+const cv=document.getElementById('strobe'), ctx=cv.getContext('2d');
+let W=0,H=0,dpr=1,marks=[],t=0,last=0,pause=0,nextMark=.2,A=100;
+const STEP=.2;
+function size(){dpr=Math.min(devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);A=2*W/9;}
+function base(){ctx.clearRect(0,0,W,H);ctx.fillStyle='rgba(255,255,255,.10)';ctx.fillRect(0,H-22,W,1);}
+function mark(x,a){ctx.fillStyle=`rgba(255,176,32,${a})`;ctx.fillRect(x,H-44,2,22);}
+function ball(x){ctx.fillStyle='#2F6BFF';ctx.shadowColor='rgba(47,107,255,.75)';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(x,H-33,7,0,7);ctx.fill();ctx.shadowBlur=0;}
+function still(){size();base();for(let k=0;k<=8;k++)mark((k*k/64)*(W-14),.25+k*.07);ball(W-14);}
+function frame(ts){
+  const dt=Math.min((ts-last)/1000,.05); last=ts;
+  if(pause>0){pause-=dt; if(pause<=0){t=0;marks=[];nextMark=STEP;}}
+  else{t+=dt; if(t>=nextMark){marks.push(.5*A*t*t); nextMark+=STEP;}}
+  const x=Math.min(.5*A*t*t,W-14);
+  base(); marks.forEach((m,i)=>mark(Math.min(m,W-16),.22+i*.06)); ball(x);
+  if(.5*A*t*t>W-14 && pause<=0) pause=.8;
+  requestAnimationFrame(frame);
+}
+function init(){
+  size();
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){still();return;}
+  requestAnimationFrame(ts=>{last=ts;requestAnimationFrame(frame);});
+}
+let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(size,150);});
+
+build(); init();
+</script>
+</body>
+</html>
